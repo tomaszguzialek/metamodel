@@ -30,11 +30,10 @@ import org.apache.metamodel.data.DocumentSource;
 import org.apache.metamodel.query.FilterItem;
 import org.apache.metamodel.query.SelectItem;
 import org.apache.metamodel.schema.Column;
-import org.apache.metamodel.schema.MutableSchema;
-import org.apache.metamodel.schema.MutableTable;
 import org.apache.metamodel.schema.Schema;
 import org.apache.metamodel.schema.Table;
 import org.apache.metamodel.schema.builder.DocumentSourceProvider;
+import org.apache.metamodel.schema.builder.SchemaBuilder;
 import org.apache.metamodel.util.SimpleTableDef;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
@@ -56,19 +55,19 @@ public class Neo4jDataContext extends QueryPostprocessDataContext implements Dat
     public static final String SCHEMA_NAME = "neo4j";
 
     public static final int DEFAULT_PORT = 7687;
-
-    private final SimpleTableDef[] _tableDefs;
+    
+    private final SchemaBuilder _schemaBuilder;
 
     private final Driver _driver;
 
     public Neo4jDataContext(String hostname, int port, String username, String password, SimpleTableDef... tableDefs) {
         _driver = buildDriver(hostname, port, username, password);
-        _tableDefs = tableDefs;
+        _schemaBuilder = new Neo4jTableDefSchemaBuilder(tableDefs);
     }
 
     public Neo4jDataContext(String hostname, int port, String username, String password) {
         _driver = buildDriver(hostname, port, username, password);
-        _tableDefs = detectTableDefs();
+        _schemaBuilder = new Neo4jTableDefSchemaBuilder(Neo4jSchemaDetector.detectTableDefs(_driver));
     }
 
     private Driver buildDriver(String hostname, int port, String username, String password) {
@@ -82,32 +81,17 @@ public class Neo4jDataContext extends QueryPostprocessDataContext implements Dat
 
     @Override
     protected String getDefaultSchemaName() throws MetaModelException {
-        return SCHEMA_NAME;
+        return _schemaBuilder.getSchemaName();
     }
 
     @Override
     protected Schema getMainSchema() throws MetaModelException {
-        MutableSchema schema = new MutableSchema(getMainSchemaName());
-        for (SimpleTableDef tableDef : _tableDefs) {
-            MutableTable table = tableDef.toTable().setSchema(schema);
-            schema.addTable(table);
-        }
-        return schema;
+        return _schemaBuilder.build();
     }
 
     @Override
     protected String getMainSchemaName() throws MetaModelException {
-        return SCHEMA_NAME;
-    }
-
-    public SimpleTableDef[] detectTableDefs() {
-        List<SimpleTableDef> tableDefs = new ArrayList<SimpleTableDef>();
-
-        // TODO: Detect all labels, properties, relationships and their
-        // properties.
-
-        return tableDefs.toArray(new SimpleTableDef[tableDefs.size()]);
-
+        return _schemaBuilder.getSchemaName();
     }
 
     @Override
@@ -177,3 +161,4 @@ public class Neo4jDataContext extends QueryPostprocessDataContext implements Dat
         return Joiner.on(", ").join(columnNames);
     }
 }
+
