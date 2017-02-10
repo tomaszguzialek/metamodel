@@ -33,142 +33,145 @@ import org.neo4j.driver.v1.Values;
 
 public class Neo4jDataContextTest extends Neo4jTestCase {
 
-    Driver _driver;
+	Driver _driver;
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+	@Override
+	protected void setUp() throws Exception {
+		super.setUp();
 
-        if (isConfigured()) {
-            if ((getUsername() != null) && (getPassword() != null)) {
-                AuthToken authToken = AuthTokens.basic(getUsername(), getPassword());
-                _driver = GraphDatabase.driver("bolt://" + getHostname() + ":" + getPort(), authToken);
-            } else {
-                _driver = GraphDatabase.driver("bolt://" + getHostname() + ":" + getPort());
-            }
-        }
-    }
+		if (isConfigured()) {
+			if ((getUsername() != null) && (getPassword() != null)) {
+				AuthToken authToken = AuthTokens.basic(getUsername(), getPassword());
+				_driver = GraphDatabase.driver("bolt://" + getHostname() + ":" + getPort(), authToken);
+			} else {
+				_driver = GraphDatabase.driver("bolt://" + getHostname() + ":" + getPort());
+			}
+		}
+	}
+	
+	@Test
+	public void testSelectQueryWithProjection() throws Exception {
+		if (!isConfigured()) {
+			System.err.println(getInvalidConfigurationMessage());
+			return;
+		}
 
-    @Test
-    public void testSelectQueryWithProjection() throws Exception {
-        if (!isConfigured()) {
-            System.err.println(getInvalidConfigurationMessage());
-            return;
-        }
+		Statement createStatement = new Statement("CREATE (n:ApacheMetaModelLabel { property1: 1, property2: 2 })");
+		Session session = _driver.session();
+		session.run(createStatement);
+		session.close();
 
-        Statement createStatement = new Statement("CREATE (n:ApacheMetaModelLabel { property1: 1, property2: 2 })");
-        Session session = _driver.session();
-        session.run(createStatement);
-        session.close();
+		Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
 
-        Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
+		{
+			CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").select("property1").compile();
+			try (final DataSet dataSet = dataContext.executeQuery(query)) {
+				assertTrue(dataSet.next());
+				assertEquals("Row[values=[1]]", dataSet.getRow().toString());
+				assertFalse(dataSet.next());
+			}
+		}
+		{
+			CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").select("property1")
+					.select("property2").compile();
+			try (final DataSet dataSet = dataContext.executeQuery(query)) {
+				assertTrue(dataSet.next());
+				assertEquals("Row[values=[1, 2]]", dataSet.getRow().toString());
+				assertFalse(dataSet.next());
+			}
+		}
+	}
 
-        {
-            CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").select("property1").compile();
-            try (final DataSet dataSet = dataContext.executeQuery(query)) {
-                assertTrue(dataSet.next());
-                assertEquals("Row[values=[1]]", dataSet.getRow().toString());
-                assertFalse(dataSet.next());
-            }
-        }
-        {
-            CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").select("property1")
-                    .select("property2").compile();
-            try (final DataSet dataSet = dataContext.executeQuery(query)) {
-                assertTrue(dataSet.next());
-                assertEquals("Row[values=[1, 2]]", dataSet.getRow().toString());
-                assertFalse(dataSet.next());
-            }
-        }
-    }
+	public void ignoredTestSelectQueryWithLargeDataset() throws Exception {
+		if (!isConfigured()) {
+			System.err.println(getInvalidConfigurationMessage());
+			return;
+		}
 
-    public void ignoredTestSelectQueryWithLargeDataset() throws Exception {
-        if (!isConfigured()) {
-            System.err.println(getInvalidConfigurationMessage());
-            return;
-        }
+		int rowCount = 100000;
 
-        int rowCount = 100000;
+		Session session = _driver.session();
+		for (int j = 0; j < rowCount / 10000; j++) {
+			for (int i = 0; i < 10000; i++) {
+				Statement statement = new Statement("CREATE (n:ApacheMetaModelLabel { i: {iParam}})",
+						Values.parameters("iParam", (j * 10000 + i)));
+				session.run(statement);
+			}
+		}
+		session.close();
+		System.out.println("Inserted " + rowCount + " rows to the database.");
 
-        Session session = _driver.session();
-        for (int j = 0; j < rowCount / 10000; j++) {
-            for (int i = 0; i < 10000; i++) {
-                Statement statement = new Statement("CREATE (n:ApacheMetaModelLabel { i: {iParam}})",
-                        Values.parameters("iParam", (j * 10000 + i)));
-                session.run(statement);
-            }
-        }
-        session.close();
-        System.out.println("Inserted " + rowCount + " rows to the database.");
+		Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
 
-        Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
+		{
+			CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").select("i").orderBy("i").compile();
+			try (final DataSet dataSet = dataContext.executeQuery(query)) {
+				for (int i = 0; i < rowCount; i++) {
+					assertTrue(dataSet.next());
+				}
+				assertFalse(dataSet.next());
+			}
+		}
+	}
 
-        {
-            CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").select("i").orderBy("i").compile();
-            try (final DataSet dataSet = dataContext.executeQuery(query)) {
-                for (int i = 0; i < rowCount; i++) {
-                    assertTrue(dataSet.next());
-                }
-                assertFalse(dataSet.next());
-            }
-        }
-    }
+	@Test
+	public void testFirstRowAndLastRow() throws Exception {
+		if (!isConfigured()) {
+			System.err.println(getInvalidConfigurationMessage());
+			return;
+		}
 
-    @Test
-    public void testFirstRowAndLastRow() throws Exception {
-        if (!isConfigured()) {
-            System.err.println(getInvalidConfigurationMessage());
-            return;
-        }
+		// insert a few records
+		{
+			Session session = _driver.session();
 
-        // insert a few records
-        {
-            Session session = _driver.session();
+			Statement statement1 = new Statement(
+					"CREATE (n:ApacheMetaModelLabel { name: {nameParam}, age: {ageParam} })",
+					Values.parameters("nameParam", "John Doe", "ageParam", 30));
+			session.run(statement1);
 
-            Statement statement1 = new Statement(
-                    "CREATE (n:ApacheMetaModelLabel { name: {nameParam}, age: {ageParam} })",
-                    Values.parameters("nameParam", "John Doe", "ageParam", 30));
-            session.run(statement1);
-            
-            Statement statement2 = new Statement(
-                    "CREATE (n:ApacheMetaModelLabel { name: {nameParam}, gender: {genderParam} })",
-                    Values.parameters("nameParam", "Jane Doe", "genderParam", "F"));
-            session.run(statement2);
-            
-            session.close();
-        }
+			Statement statement2 = new Statement(
+					"CREATE (n:ApacheMetaModelLabel { name: {nameParam}, gender: {genderParam} })",
+					Values.parameters("nameParam", "Jane Doe", "genderParam", "F"));
+			session.run(statement2);
 
-        // create datacontext using detected schema
-        final DataContext dc = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
+			session.close();
+		}
 
-        try (final DataSet ds = dc.query().from("ApacheMetaModelLabel").select("name").and("age").firstRow(2)
-                .execute()) {
-            assertTrue("Class: " + ds.getClass().getName(), ds instanceof Neo4jDataSet);
-            assertTrue(ds.next());
-            final Row row = ds.getRow();
-            assertEquals("Row[values=[Jane Doe, null]]", row.toString());
-            assertFalse(ds.next());
-        }
+		// create datacontext using detected schema
+		final DataContext dc = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
 
-        try (final DataSet ds = dc.query().from("ApacheMetaModelLabel").select("name").and("age").maxRows(1)
-                .execute()) {
-            assertTrue("Class: " + ds.getClass().getName(), ds instanceof Neo4jDataSet);
-            assertTrue(ds.next());
-            final Row row = ds.getRow();
-            assertEquals("Row[values=[John Doe, 30]]", row.toString());
-            assertFalse(ds.next());
-        }
-    }
+		try (final DataSet ds = dc.query().from("ApacheMetaModelLabel").select("name").and("age").firstRow(2)
+				.execute()) {
+			assertTrue("Class: " + ds.getClass().getName(), ds instanceof Neo4jDataSet);
+			assertTrue(ds.next());
+			final Row row = ds.getRow();
+			assertEquals(2, row.getValues().length);
+			assertEquals("Row[values=[\"Jane Doe\", NULL]]", row.toString());
+			assertFalse(ds.next());
+		}
 
-    @Override
-    protected void tearDown() throws Exception {
-        if (isConfigured()) {
-            // Delete the test nodes
-            _driver.session().run("MATCH (n:ApacheMetaModelLabel) DELETE n;");
-            _driver.close();
-        }
+		try (final DataSet ds = dc.query().from("ApacheMetaModelLabel").select("name").and("age").maxRows(1)
+				.execute()) {
+			assertTrue("Class: " + ds.getClass().getName(), ds instanceof Neo4jDataSet);
+			assertTrue(ds.next());
+			final Row row = ds.getRow();
+			assertEquals("Row[values=[\"John Doe\", 30]]", row.toString());
+			assertFalse(ds.next());
+		}
+	}
 
-        super.tearDown();
-    }
+	@Override
+	protected void tearDown() throws Exception {
+		if (isConfigured()) {
+			// Delete the test nodes
+			Session session = _driver.session();
+			session.run("MATCH (n) OPTIONAL MATCH (n)-[r]-() WHERE n:ApacheMetaModelLabel OR n:ApacheMetaModelLabel1 OR n:ApacheMetaModelLabel2 DELETE n, r;");
+			session.close();
+			_driver.close();
+		}
+
+		super.tearDown();
+	}
 
 }
