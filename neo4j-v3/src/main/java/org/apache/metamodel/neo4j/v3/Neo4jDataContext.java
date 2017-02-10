@@ -23,10 +23,12 @@ import java.util.List;
 
 import org.apache.metamodel.DataContext;
 import org.apache.metamodel.MetaModelException;
+import org.apache.metamodel.MetaModelHelper;
 import org.apache.metamodel.QueryPostprocessDataContext;
 import org.apache.metamodel.data.DataSet;
 import org.apache.metamodel.data.DocumentSource;
 import org.apache.metamodel.query.FilterItem;
+import org.apache.metamodel.query.SelectItem;
 import org.apache.metamodel.schema.Column;
 import org.apache.metamodel.schema.MutableSchema;
 import org.apache.metamodel.schema.MutableTable;
@@ -37,8 +39,12 @@ import org.apache.metamodel.util.SimpleTableDef;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Statement;
+import org.neo4j.driver.v1.Values;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Joiner;
 
 /**
  * DataContext implementation for Neo4j (version >= 3.0).
@@ -106,7 +112,27 @@ public class Neo4jDataContext extends QueryPostprocessDataContext implements Dat
 
     @Override
     protected DataSet materializeMainSchemaTable(Table table, Column[] columns, int firstRow, int maxRows) {
-        return null;
+        if ((columns != null) && (columns.length > 0)) {
+        	final SelectItem[] selectItems = MetaModelHelper.createSelectItems(columns);
+        	
+        	String returnClause = prepareReturnClause(selectItems);
+        	
+        	String statementString = "MATCH (node:" + table.getName() + ")-[relationship*0..1]->() RETURN " + returnClause + " SKIP {firstRow}";
+        	
+        	Statement statement;
+            if (maxRows > 0) {
+                statement = new Statement(statementString + " LIMIT {maxRows};",
+                        Values.parameters("firstRow", firstRow - 1, "maxRows", maxRows));
+            } else {
+                statement = new Statement(statementString,
+                        Values.parameters("firstRow", firstRow - 1));
+            }
+            
+            return new Neo4jDataSet(_driver, selectItems, statement);
+        } else {
+            logger.error("Encountered null or empty columns array for materializing main schema table.");
+            throw new IllegalArgumentException("Columns cannot be null or empty array");
+        }
     }
 
     @Override
@@ -127,5 +153,27 @@ public class Neo4jDataContext extends QueryPostprocessDataContext implements Dat
     @Override
     public DocumentSource getDocumentSourceForTable(String sourceCollectionName) {
         return null;
+    }
+    
+    private String prepareReturnClause(final SelectItem[] selectItems) {
+        List<String> columnNames = new ArrayList<>();
+        
+        for (SelectItem selectItem : selectItems) {
+            String columnName = selectItem.getColumn().getName();
+            
+            String prefix;
+            if (columnName.startsWith("rel_")) {
+                prefix = "relationship.";
+                
+                if (columnName.contains("#")) {
+                    columnName = columnName.substring(columnName.indexOf("#") + 1);
+                }
+            } else {
+                prefix = "node.";
+            }
+            columnNames.add(prefix + columnName);
+        }
+        
+        return Joiner.on(", ").join(columnNames);
     }
 }
