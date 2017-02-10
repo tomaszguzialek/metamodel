@@ -78,6 +78,7 @@ under the License.
 		<module>full</module>
 		<module>spring</module>
 		<module>neo4j</module>
+		<module>neo4j-v3</module>
 	</modules>
 	<issueManagement>
 		<system>Jira</system>
