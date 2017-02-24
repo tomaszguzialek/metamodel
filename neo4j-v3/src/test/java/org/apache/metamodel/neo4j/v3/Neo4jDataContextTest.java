@@ -160,6 +160,44 @@ public class Neo4jDataContextTest extends Neo4jTestCase {
 			assertFalse(ds.next());
 		}
 	}
+	
+	@Test
+	public void testWhereClause() {
+	    if (!isConfigured()) {
+            System.err.println(getInvalidConfigurationMessage());
+            return;
+        }
+
+        // insert a few records
+        {
+            Session session = _driver.session();
+
+            Statement statement1 = new Statement(
+                    "CREATE (n:ApacheMetaModelLabel { name: {nameParam}, age: {ageParam} })",
+                    Values.parameters("nameParam", "John Doe", "ageParam", 30));
+            session.run(statement1);
+
+            Statement statement2 = new Statement(
+                    "CREATE (n:ApacheMetaModelLabel { name: {nameParam}, gender: {genderParam} })",
+                    Values.parameters("nameParam", "Jane Doe", "genderParam", "F"));
+            session.run(statement2);
+
+            session.close();
+        }
+
+        // create datacontext using detected schema
+        final DataContext dc = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
+
+        try (final DataSet ds = dc.query().from("ApacheMetaModelLabel").selectAll().where("name").eq("John Doe")
+                .execute()) {
+            assertTrue("Class: " + ds.getClass().getName(), ds instanceof FilteredDataSet);
+            assertTrue(ds.next());
+            final Row row = ds.getRow();
+            assertEquals(3, row.getValues().length);
+            assertEquals("Row[values=[30, null, John Doe]]", row.toString());
+            assertFalse(ds.next());
+        }
+	}
 
 	@Override
 	protected void tearDown() throws Exception {
