@@ -148,7 +148,7 @@ public class Neo4jDataContextTest extends Neo4jTestCase {
 			assertTrue(ds.next());
 			final Row row = ds.getRow();
 			assertEquals(2, row.getValues().length);
-			assertEquals("Row[values=[\"Jane Doe\", NULL]]", row.toString());
+			assertEquals("Row[values=[Jane Doe, null]]", row.toString());
 			assertFalse(ds.next());
 		}
 
@@ -157,7 +157,7 @@ public class Neo4jDataContextTest extends Neo4jTestCase {
 			assertTrue("Class: " + ds.getClass().getName(), ds instanceof Neo4jDataSet);
 			assertTrue(ds.next());
 			final Row row = ds.getRow();
-			assertEquals("Row[values=[\"John Doe\", 30]]", row.toString());
+			assertEquals("Row[values=[John Doe, 30]]", row.toString());
 			assertFalse(ds.next());
 		}
 	}
