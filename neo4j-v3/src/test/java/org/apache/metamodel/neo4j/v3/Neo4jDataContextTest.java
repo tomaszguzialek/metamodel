@@ -116,6 +116,103 @@ public class Neo4jDataContextTest extends Neo4jTestCase {
             }
         }
     }
+	
+	@Test
+    public void testSelectQueryWithSelfRelationshipUnidirectional() throws Exception {
+        if (!isConfigured()) {
+            System.err.println(getInvalidConfigurationMessage());
+            return;
+        }
+
+        Statement createNodesStatement = new Statement(
+                "CREATE (n1:ApacheMetaModelLabel { property1: \"label1Prop1Val\", property2: \"label1Prop2Val\" }), (n2:ApacheMetaModelLabel { property1: \"label2Prop1Val\", property3: \"label2Prop3Val\" })");
+        Statement createRelationshipStatement = new Statement(
+                "MATCH (n1:ApacheMetaModelLabel { property1: \"label1Prop1Val\", property2: \"label1Prop2Val\" }), (n2:ApacheMetaModelLabel { property1: \"label2Prop1Val\", property3: \"label2Prop3Val\" }) CREATE (n1)-[r1:ApacheMetaModelRelationship { relprop1: 1, relprop2: 2 }]->(n2)");
+        Session session = _driver.session();
+        session.run(createNodesStatement);
+        session.run(createRelationshipStatement);
+        session.close();
+
+        Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
+
+        {
+            CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").selectAll().compile();
+            try (final DataSet dataSet = dataContext.executeQuery(query)) {
+                assertTrue(dataSet.next());
+                Row row = dataSet.getRow();
+                assertEquals(Long.class, row.getValue(0).getClass());
+                assertEquals("label1Prop1Val", row.getValue(1));
+                assertEquals("label1Prop2Val", row.getValue(2));
+                assertEquals(null, row.getValue(3));
+                assertEquals(Long.class, row.getValue(4).getClass());
+                assertEquals(1L, row.getValue(5));
+                assertEquals(2L, row.getValue(6));
+                assertTrue(dataSet.next());
+                
+                row = dataSet.getRow();
+                assertEquals(Long.class, row.getValue(0).getClass());
+                assertEquals("label2Prop1Val", row.getValue(1));
+                assertEquals(null, row.getValue(2));
+                assertEquals("label2Prop3Val", row.getValue(3));
+                assertEquals(null, row.getValue(4));
+                assertEquals(null, row.getValue(5));
+                assertEquals(null, row.getValue(6));
+                assertFalse(dataSet.next());
+            }
+        }
+    }
+	
+	@Test
+    public void testSelectQueryWithSelfRelationshipBidirectional() throws Exception {
+        if (!isConfigured()) {
+            System.err.println(getInvalidConfigurationMessage());
+            return;
+        }
+
+        Statement createNodesStatement = new Statement(
+                "CREATE (n1:ApacheMetaModelLabel { property1: \"label1Prop1Val\", property2: \"label1Prop2Val\" }), (n2:ApacheMetaModelLabel { property1: \"label2Prop1Val\", property3: \"label2Prop3Val\" })");
+        Statement createRelationshipStatement = new Statement(
+                "MATCH (n1:ApacheMetaModelLabel { property1: \"label1Prop1Val\", property2: \"label1Prop2Val\" }), (n2:ApacheMetaModelLabel { property1: \"label2Prop1Val\", property3: \"label2Prop3Val\" }) CREATE (n1)-[r1:ApacheMetaModelRelationship { relprop1: 1, relprop2: 2 }]->(n2), (n1)<-[r2:ApacheMetaModelRelationship { relprop1: 1, relprop2: 2 }]-(n2)");
+        Session session = _driver.session();
+        session.run(createNodesStatement);
+        session.run(createRelationshipStatement);
+        session.close();
+
+        Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
+
+        {
+            CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").selectAll().compile();
+            try (final DataSet dataSet = dataContext.executeQuery(query)) {
+                assertTrue(dataSet.next());
+                Row row = dataSet.getRow();
+                Object id1 = row.getValue(0);
+                assertEquals(Long.class, id1.getClass());
+                assertEquals("label1Prop1Val", row.getValue(1));
+                assertEquals("label1Prop2Val", row.getValue(2));
+                assertEquals(null, row.getValue(3));
+                Object joinedNodeId1 = row.getValue(4);
+                assertEquals(Long.class, joinedNodeId1.getClass());
+                assertEquals(1L, row.getValue(5));
+                assertEquals(2L, row.getValue(6));
+                assertTrue(dataSet.next());
+                
+                row = dataSet.getRow();
+                Object id2 = row.getValue(0);
+                assertEquals(Long.class, id2.getClass());
+                assertEquals("label2Prop1Val", row.getValue(1));
+                assertEquals(null, row.getValue(2));
+                assertEquals("label2Prop3Val", row.getValue(3));
+                Object joinedNodeId2 = row.getValue(4);
+                assertEquals(Long.class, joinedNodeId2.getClass());
+                assertEquals(1L, row.getValue(5));
+                assertEquals(2L, row.getValue(6));
+                assertFalse(dataSet.next());
+                
+                assertEquals(id1, joinedNodeId2);
+                assertEquals(id2, joinedNodeId1);
+            }
+        }
+    }
 
 	public void ignoredTestSelectQueryWithLargeDataset() throws Exception {
 		if (!isConfigured()) {
