@@ -119,6 +119,8 @@ final class Neo4jSchemaDetector {
             
         });
         
+        propertiesPerLabel.add(0, "id");
+        
         return propertiesPerLabel;
     }
     
