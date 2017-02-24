@@ -152,6 +152,8 @@ public class Neo4jDataContext extends QueryPostprocessDataContext implements Dat
                 } else {
                     columnNames.add("id(joinedNode)");
                 }
+            } else if (columnName.equals("id")) {
+                columnNames.add("id(node)");
             } else {
                 columnNames.add("node." + columnName);
             }
