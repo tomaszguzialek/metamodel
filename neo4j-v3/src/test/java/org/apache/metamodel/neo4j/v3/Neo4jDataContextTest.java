@@ -82,6 +82,39 @@ public class Neo4jDataContextTest extends Neo4jTestCase {
 			}
 		}
 	}
+	
+	@Test
+    public void testSelectQueryWithRelationship() throws Exception {
+        if (!isConfigured()) {
+            System.err.println(getInvalidConfigurationMessage());
+            return;
+        }
+
+        Statement createNodesStatement = new Statement(
+                "CREATE (n1:ApacheMetaModelLabel1 { property1: \"label1Prop1Val\", property2: \"label1Prop2Val\" }), (n2:ApacheMetaModelLabel2 { property1: \"label2Prop1Val\", property3: \"label2Prop3Val\" })");
+        Statement createRelationshipStatement = new Statement(
+                "MATCH (n1:ApacheMetaModelLabel1 { property1: \"label1Prop1Val\", property2: \"label1Prop2Val\" }), (n2:ApacheMetaModelLabel2 { property1: \"label2Prop1Val\", property3: \"label2Prop3Val\" }) CREATE (n1)-[r1:ApacheMetaModelRelationship { relprop1: 1, relprop2: 2 }]->(n2)");
+        Session session = _driver.session();
+        session.run(createNodesStatement);
+        session.run(createRelationshipStatement);
+        session.close();
+
+        Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
+
+        {
+            CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel1").selectAll().compile();
+            try (final DataSet dataSet = dataContext.executeQuery(query)) {
+                assertTrue(dataSet.next());
+                Row row = dataSet.getRow();
+                assertEquals("label1Prop1Val", row.getValue(0));
+                assertEquals("label1Prop2Val", row.getValue(1));
+                assertEquals(Long.class, row.getValue(2).getClass());
+                assertEquals(1L, row.getValue(3));
+                assertEquals(2L, row.getValue(4));
+                assertFalse(dataSet.next());
+            }
+        }
+    }
 
 	public void ignoredTestSelectQueryWithLargeDataset() throws Exception {
 		if (!isConfigured()) {
