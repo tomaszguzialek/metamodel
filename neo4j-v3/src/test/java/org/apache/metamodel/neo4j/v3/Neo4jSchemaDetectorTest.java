@@ -75,19 +75,21 @@ public class Neo4jSchemaDetectorTest extends Neo4jTestCase {
         // Table 1
         assertEquals("ApacheMetaModelLabel1", tableDefs[0].getName());
         String[] label1ColumnNames = tableDefs[0].getColumnNames();
-        assertEquals(2, label1ColumnNames.length);
+        assertEquals(3, label1ColumnNames.length);
         
         Arrays.sort(label1ColumnNames);
-        assertEquals("property1", label1ColumnNames[0]);
-        assertEquals("property2", label1ColumnNames[1]);
+        assertEquals("id", label1ColumnNames[0]);
+        assertEquals("property1", label1ColumnNames[1]);
+        assertEquals("property2", label1ColumnNames[2]);
         
         // Table 2
         String[] label2ColumnNames = tableDefs[1].getColumnNames();
-        assertEquals(2, label2ColumnNames.length);
+        assertEquals(3, label2ColumnNames.length);
         
         Arrays.sort(label2ColumnNames);
-        assertEquals("property1", label2ColumnNames[0]);
-        assertEquals("property3", label2ColumnNames[1]);
+        assertEquals("id", label2ColumnNames[0]);
+        assertEquals("property1", label2ColumnNames[1]);
+        assertEquals("property3", label2ColumnNames[2]);
     }
 
 	@Test
@@ -117,22 +119,24 @@ public class Neo4jSchemaDetectorTest extends Neo4jTestCase {
 		// Table 1
 		assertEquals("ApacheMetaModelLabel1", tableDefs[0].getName());
 		String[] label1ColumnNames = tableDefs[0].getColumnNames();
-		assertEquals(5, label1ColumnNames.length);
+		assertEquals(6, label1ColumnNames.length);
 		
 		Arrays.sort(label1ColumnNames);
-		assertEquals("property1", label1ColumnNames[0]);
-		assertEquals("property2", label1ColumnNames[1]);
-		assertEquals("rel_ApacheMetaModelRelationship", label1ColumnNames[2]);
-		assertEquals("rel_ApacheMetaModelRelationship#relprop1", label1ColumnNames[3]);
-		assertEquals("rel_ApacheMetaModelRelationship#relprop2", label1ColumnNames[4]);
+		assertEquals("id", label1ColumnNames[0]);
+		assertEquals("property1", label1ColumnNames[1]);
+		assertEquals("property2", label1ColumnNames[2]);
+		assertEquals("rel_ApacheMetaModelRelationship", label1ColumnNames[3]);
+		assertEquals("rel_ApacheMetaModelRelationship#relprop1", label1ColumnNames[4]);
+		assertEquals("rel_ApacheMetaModelRelationship#relprop2", label1ColumnNames[5]);
 		
 		// Table 2
 		String[] label2ColumnNames = tableDefs[1].getColumnNames();
-		assertEquals(2, label2ColumnNames.length);
+		assertEquals(3, label2ColumnNames.length);
 		
 		Arrays.sort(label2ColumnNames);
-		assertEquals("property1", label2ColumnNames[0]);
-		assertEquals("property3", label2ColumnNames[1]);
+		assertEquals("id", label2ColumnNames[0]);
+		assertEquals("property1", label2ColumnNames[1]);
+		assertEquals("property3", label2ColumnNames[2]);
 	}
 	
 	@Test
@@ -165,26 +169,28 @@ public class Neo4jSchemaDetectorTest extends Neo4jTestCase {
         // Table 1
         assertEquals("ApacheMetaModelLabel1", tableDefs[0].getName());
         String[] label1ColumnNames = tableDefs[0].getColumnNames();
-        assertEquals(5, label1ColumnNames.length);
+        assertEquals(6, label1ColumnNames.length);
         
         Arrays.sort(label1ColumnNames);
-        assertEquals("property1", label1ColumnNames[0]);
-        assertEquals("property2", label1ColumnNames[1]);
-        assertEquals("rel_ApacheMetaModelRelationship", label1ColumnNames[2]);
-        assertEquals("rel_ApacheMetaModelRelationship#relprop1", label1ColumnNames[3]);
-        assertEquals("rel_ApacheMetaModelRelationship#relprop2", label1ColumnNames[4]);
+        assertEquals("id", label1ColumnNames[0]);
+        assertEquals("property1", label1ColumnNames[1]);
+        assertEquals("property2", label1ColumnNames[2]);
+        assertEquals("rel_ApacheMetaModelRelationship", label1ColumnNames[3]);
+        assertEquals("rel_ApacheMetaModelRelationship#relprop1", label1ColumnNames[4]);
+        assertEquals("rel_ApacheMetaModelRelationship#relprop2", label1ColumnNames[5]);
         
         // Table 2
         assertEquals("ApacheMetaModelLabel2", tableDefs[1].getName());
         String[] label2ColumnNames = tableDefs[1].getColumnNames();
-        assertEquals(5, label2ColumnNames.length);
+        assertEquals(6, label2ColumnNames.length);
         
         Arrays.sort(label2ColumnNames);
-        assertEquals("property1", label2ColumnNames[0]);
-        assertEquals("property3", label2ColumnNames[1]);
-        assertEquals("rel_ApacheMetaModelRelationship", label2ColumnNames[2]);
-        assertEquals("rel_ApacheMetaModelRelationship#relprop1", label2ColumnNames[3]);
-        assertEquals("rel_ApacheMetaModelRelationship#relprop2", label2ColumnNames[4]);
+        assertEquals("id", label2ColumnNames[0]);
+        assertEquals("property1", label2ColumnNames[1]);
+        assertEquals("property3", label2ColumnNames[2]);
+        assertEquals("rel_ApacheMetaModelRelationship", label2ColumnNames[3]);
+        assertEquals("rel_ApacheMetaModelRelationship#relprop1", label2ColumnNames[4]);
+        assertEquals("rel_ApacheMetaModelRelationship#relprop2", label2ColumnNames[5]);
     }
 
 	@Override
