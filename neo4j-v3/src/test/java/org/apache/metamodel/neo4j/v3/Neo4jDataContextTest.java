@@ -20,6 +20,7 @@ package org.apache.metamodel.neo4j.v3;
 
 import org.apache.metamodel.DataContext;
 import org.apache.metamodel.data.DataSet;
+import org.apache.metamodel.data.FilteredDataSet;
 import org.apache.metamodel.data.Row;
 import org.apache.metamodel.query.CompiledQuery;
 import org.junit.Test;
