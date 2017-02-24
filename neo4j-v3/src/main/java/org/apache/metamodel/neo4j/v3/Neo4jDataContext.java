@@ -101,7 +101,7 @@ public class Neo4jDataContext extends QueryPostprocessDataContext implements Dat
         	
         	String returnClause = prepareReturnClause(selectItems);
         	
-        	String statementString = "MATCH (node:" + table.getName() + ")-[relationship*0..1]->() RETURN " + returnClause + " SKIP {firstRow}";
+        	String statementString = "MATCH (node:" + table.getName() + ") OPTIONAL MATCH (node)-[relationship]->(joinedNode) RETURN " + returnClause + " SKIP {firstRow}";
         	
         	Statement statement;
             if (maxRows > 0) {
@@ -145,17 +145,17 @@ public class Neo4jDataContext extends QueryPostprocessDataContext implements Dat
         for (SelectItem selectItem : selectItems) {
             String columnName = selectItem.getColumn().getName();
             
-            String prefix;
             if (columnName.startsWith("rel_")) {
-                prefix = "relationship.";
-                
                 if (columnName.contains("#")) {
                     columnName = columnName.substring(columnName.indexOf("#") + 1);
+                    columnNames.add("relationship." + columnName);
+                } else {
+                    columnNames.add("id(joinedNode)");
                 }
             } else {
-                prefix = "node.";
+                columnNames.add("node." + columnName);
             }
-            columnNames.add(prefix + columnName);
+            
         }
         
         return Joiner.on(", ").join(columnNames);
