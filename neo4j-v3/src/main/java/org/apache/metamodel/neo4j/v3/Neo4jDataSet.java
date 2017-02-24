@@ -19,15 +19,12 @@
 package org.apache.metamodel.neo4j.v3;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.metamodel.data.AbstractDataSet;
-import org.apache.metamodel.data.DataSetHeader;
 import org.apache.metamodel.data.DefaultRow;
 import org.apache.metamodel.data.Row;
-import org.apache.metamodel.data.SimpleDataSetHeader;
 import org.apache.metamodel.query.SelectItem;
-import org.apache.metamodel.schema.Column;
-import org.apache.metamodel.schema.MutableColumn;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
@@ -53,17 +50,12 @@ final class Neo4jDataSet extends AbstractDataSet {
         boolean hasNext = _result.hasNext();
         if (hasNext) {
             Record record = _result.next();
-            
-            List<String> columnNames = record.keys();
-            Column[] columns = new Column[columnNames.size()];
-            for (int i = 0; i < columnNames.size(); i++) {
-				Column column = new MutableColumn(columnNames.get(i));
-				columns[i] = column;
-			}
-            
-            DataSetHeader header = new SimpleDataSetHeader(columns);
-            _row = new DefaultRow(header, record.values().toArray());
-            
+
+            List<Object> values = record.values().stream().map(x -> x.asObject())
+                    .collect(Collectors.toList());
+
+            _row = new DefaultRow(getHeader(), values.toArray());
+
             return true;
         } else {
             _result.consume();
