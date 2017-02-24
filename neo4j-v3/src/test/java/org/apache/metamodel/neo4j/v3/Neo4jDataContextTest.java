@@ -106,11 +106,12 @@ public class Neo4jDataContextTest extends Neo4jTestCase {
             try (final DataSet dataSet = dataContext.executeQuery(query)) {
                 assertTrue(dataSet.next());
                 Row row = dataSet.getRow();
-                assertEquals("label1Prop1Val", row.getValue(0));
-                assertEquals("label1Prop2Val", row.getValue(1));
-                assertEquals(Long.class, row.getValue(2).getClass());
-                assertEquals(1L, row.getValue(3));
-                assertEquals(2L, row.getValue(4));
+                assertEquals(Long.class, row.getValue(0).getClass());
+                assertEquals("label1Prop1Val", row.getValue(1));
+                assertEquals("label1Prop2Val", row.getValue(2));
+                assertEquals(Long.class, row.getValue(3).getClass());
+                assertEquals(1L, row.getValue(4));
+                assertEquals(2L, row.getValue(5));
                 assertFalse(dataSet.next());
             }
         }
@@ -227,8 +228,11 @@ public class Neo4jDataContextTest extends Neo4jTestCase {
             assertTrue("Class: " + ds.getClass().getName(), ds instanceof FilteredDataSet);
             assertTrue(ds.next());
             final Row row = ds.getRow();
-            assertEquals(3, row.getValues().length);
-            assertEquals("Row[values=[30, null, John Doe]]", row.toString());
+            assertEquals(4, row.getValues().length);
+            assertEquals(Long.class, row.getValue(0).getClass());
+            assertEquals(30L, row.getValue(1));
+            assertEquals(null, row.getValue(2));
+            assertEquals("John Doe", row.getValue(3));
             assertFalse(ds.next());
         }
 	}
