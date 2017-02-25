@@ -214,37 +214,95 @@ public class Neo4jDataContextTest extends Neo4jTestCase {
         }
     }
 
-	public void ignoredTestSelectQueryWithLargeDataset() throws Exception {
+	@Test
+	public void testSelectCountQuery() throws Exception {
 		if (!isConfigured()) {
 			System.err.println(getInvalidConfigurationMessage());
 			return;
 		}
 
-		int rowCount = 100000;
+		int rowCount = 42;
 
-		Session session = _driver.session();
-		for (int j = 0; j < rowCount / 10000; j++) {
-			for (int i = 0; i < 10000; i++) {
-				Statement statement = new Statement("CREATE (n:ApacheMetaModelLabel { i: {iParam}})",
-						Values.parameters("iParam", (j * 10000 + i)));
-				session.run(statement);
-			}
+		try (Session session = _driver.session()) {
+		    for (int i = 0; i < rowCount; i++) {
+	            Statement statement = new Statement("CREATE (n:ApacheMetaModelLabel { i: {iParam}})",
+	                    Values.parameters("iParam", i));
+	            session.run(statement);
+	        }
 		}
-		session.close();
-		System.out.println("Inserted " + rowCount + " rows to the database.");
 
 		Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
-
-		{
-			CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").select("i").orderBy("i").compile();
-			try (final DataSet dataSet = dataContext.executeQuery(query)) {
-				for (int i = 0; i < rowCount; i++) {
-					assertTrue(dataSet.next());
-				}
-				assertFalse(dataSet.next());
-			}
+		
+		CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").selectCount().compile();
+		try (final DataSet dataSet = dataContext.executeQuery(query)) {
+			assertTrue(dataSet.next());
+			Row row = dataSet.getRow();
+			Number count = (Number) row.getValue(0);
+			assertEquals(rowCount, count.intValue());
+			assertFalse(dataSet.next());
 		}
 	}
+	
+	@Test
+    public void testSelectCountQueryWithWhereClause() throws Exception {
+        if (!isConfigured()) {
+            System.err.println(getInvalidConfigurationMessage());
+            return;
+        }
+
+        int rowCount = 42;
+
+        try (Session session = _driver.session()) {
+            for (int i = 0; i < rowCount; i++) {
+                Statement statement = new Statement("CREATE (n:ApacheMetaModelLabel { i: {iParam}})",
+                        Values.parameters("iParam", i));
+                session.run(statement);
+            }
+        }
+
+        Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
+        
+        CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").selectCount().where("i").lessThan(10).compile();
+        try (final DataSet dataSet = dataContext.executeQuery(query)) {
+            assertTrue(dataSet.next());
+            Row row = dataSet.getRow();
+            Number count = (Number) row.getValue(0);
+            assertEquals(10, count.intValue());
+            assertFalse(dataSet.next());
+        }
+    }
+	
+	public void ignoredTestSelectQueryWithLargeDataset() throws Exception {
+        if (!isConfigured()) {
+            System.err.println(getInvalidConfigurationMessage());
+            return;
+        }
+
+        int rowCount = 100000;
+
+        Session session = _driver.session();
+        for (int j = 0; j < rowCount / 10000; j++) {
+            for (int i = 0; i < 10000; i++) {
+                Statement statement = new Statement("CREATE (n:ApacheMetaModelLabel { i: {iParam}})",
+                        Values.parameters("iParam", (j * 10000 + i)));
+                session.run(statement);
+            }
+        }
+        session.close();
+        System.out.println("Inserted " + rowCount + " rows to the database.");
+
+        Neo4jDataContext dataContext = new Neo4jDataContext(getHostname(), getPort(), getUsername(), getPassword());
+
+        {
+            CompiledQuery query = dataContext.query().from("ApacheMetaModelLabel").select("i").orderBy("i").compile();
+            try (final DataSet dataSet = dataContext.executeQuery(query)) {
+                for (int i = 0; i < rowCount; i++) {
+                    assertTrue(dataSet.next());
+                }
+                assertFalse(dataSet.next());
+            }
+        }
+    }
 
 	@Test
 	public void testFirstRowAndLastRow() throws Exception {
